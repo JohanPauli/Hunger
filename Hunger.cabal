@@ -16,7 +16,7 @@ version:             0.1.0.0
 synopsis:            Power system simulation framework.
 
 -- A longer description of the package.
-description:         A collection of data structures, transformations
+description:         A collection of data structures, functions
                      (including power system analyses and data
                      transformations), and an IO framework for their use.
 
@@ -56,7 +56,7 @@ executable Hunger
   -- other-modules:
 
   -- LANGUAGE extensions used by modules in this package.
-  default-extensions:  OverloadedStrings, MultiParamTypeClasses
+  default-extensions:  OverloadedStrings
   -- other-extensions:
 
   -- Other library packages from which modules are imported.

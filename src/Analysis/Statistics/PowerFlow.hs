@@ -4,7 +4,7 @@
 module Analysis.Statistics.PowerFlow
 (
 -- * Detail statistics
-  PowerFlowStatistics
+  PowerFlowResult
 , BusResult
 , LineResult
 , busDetails
@@ -29,7 +29,7 @@ import Data.Grid.Edge
 
 -- | Power flow statistics are bus and line statistics, along with iteration
 -- count.
-type PowerFlowStatistics = (Int, [BusResult], [LineResult])
+type PowerFlowResult = (Int, [BusResult], [LineResult])
 
 -- | Results for the buses from a power flow.
 type BusResult = (NodeID, CVoltage, CPower)

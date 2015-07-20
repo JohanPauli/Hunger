@@ -60,13 +60,13 @@ solvePF :: ( Topological a, Bus b, Generator c
         -> [d] -- ^ System loads.
         -> [e] -- ^ System lines.
         -> [f] -- ^ System shunt admittances.
-        -> PowerFlowStatistics -- ^ The power flow result.
+        -> PowerFlowResult -- ^ The power flow result.
 solvePF GaussSeidel top bs gs los lis sads =
   ( it
   , busDetails tr bs adm v
-  , lineDetails tr top lis adm v)
+  , lineDetails tr top lis adm v )
   where
-    (_,v,it) = GS.solvePF nPQ nPV (s0,v0) adm
+    (v,it) = GS.solvePF nPQ nPV (s0,v0) adm
     (tr, nPQ, nPV, adm, s0, v0) =
       prepareAC top bs gs los lis sads
 solvePF Jacobi top bs gs los lis sads =
@@ -74,7 +74,7 @@ solvePF Jacobi top bs gs los lis sads =
   , busDetails tr bs adm v
   , lineDetails tr top lis adm v)
   where
-    (_,v,it) = JC.solvePF nPQ nPV (s0,v0) adm
+    (v,it) = JC.solvePF nPQ nPV (s0,v0) adm
     (tr, nPQ, nPV, adm, s0, v0) =
       prepareAC top bs gs los lis sads
 

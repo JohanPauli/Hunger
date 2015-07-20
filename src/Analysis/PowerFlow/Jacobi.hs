@@ -27,25 +27,22 @@ solvePF :: Int -- ^ Number of PQ buses.
         -> Int -- ^ Number of PV buses.
         -> (Vector CPower, Vector CVoltage) -- ^ Initial values.
         -> Matrix CAdmittance -- ^ Admittance matrix.
-        -> (Vector CPower, Vector CVoltage, Int)
+        -> (Vector CVoltage, Int)
 solvePF n m (s0,v0) adm =
-  if V.norm_Inf (s0 - v0 * conj (adm #> v0)) < 1e-3
-  then (s0, v0, 1)
-  else jacobiStep (s0, v0, 1)
+  let (_,sRes,itRes) = jacobiStep (s0, v0, 1) in (sRes,itRes)
   where
     -- A step in the jacobi iteration algorithm.
     jacobiStep :: (Vector CPower, Vector CVoltage, Int)
                -> (Vector CPower, Vector CVoltage, Int)
     jacobiStep (s,v,it)
-      | mis < 1e-5 = (v * conj (adm #> v),v,it)
+      | mis < 1e-7 = (v * conj (adm #> v),v,it)
       | it > 1000 = error $ V.dispcf 2 $ V.asRow $ s - v * conj (adm #> v)
       | otherwise = jacobiStep (s',v',it+1)
       where
+        -- Updated values for s and v.
         (s',v') = (updatePQPV . updatePV) (s,v)
-        mises = V.init $ s - v * conj (adm #> v)
-        realMis = V.norm_Inf $ V.map realPart mises
-        imagMis = V.norm_Inf $ V.map imagPart mises
-        mis = max realMis imagMis
+        -- The convergence criterion parameter, 'power mismatch.'
+        mis = V.norm_Inf $ V.init $ s - v * conj (adm #> v)
 
     -- Elementwise reciprocal to the diagonal of the admittance matrix.
     d = V.cmap (1/) $ V.takeDiag adm

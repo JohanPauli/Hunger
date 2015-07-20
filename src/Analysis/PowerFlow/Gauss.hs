@@ -23,9 +23,9 @@ solvePF :: Int -- ^ Number of PQ buses.
         -> Int -- ^ Number of PV buses.
         -> (Vector CPower, Vector CVoltage) -- ^ Initial values.
         -> Matrix CAdmittance -- ^ Admittance matrix.
-        -> (Vector CPower, Vector CVoltage, Int)
+        -> (Vector CVoltage, Int)
 solvePF n m (s0,v0) adm =
-  gaussStep (s0, v0, 1)
+  let (_,vRes,itRes) = gaussStep (s0, v0, 1) in (vRes,itRes)
   where
     -- An iteration step of the Gauss-Seidel variety.
     gaussStep :: (Vector CPower, Vector CVoltage, Int)
@@ -35,11 +35,10 @@ solvePF n m (s0,v0) adm =
       | it >= 1000 = error $ V.dispcf 2 $ V.asRow $ s - v * conj (adm #> v)
       | otherwise = gaussStep (s',v',it+1)
       where
+        -- Updated values for s and v.
         (s',v') = (updatePV . updatePQ) (s, v)
-        mises = V.init $ s - v * conj (adm #> v)
-        realMis = V.norm_Inf $ V.map realPart mises
-        imagMis = V.norm_Inf $ V.map imagPart mises
-        mis = max realMis imagMis
+        -- The convergence criterion parameter, 'power mismatch.'
+        mis = V.norm_Inf $ V.init $ s - v * conj (adm #> v)
 
     -- Update the PQ buses using Gauss-Seidel.
     updatePQ :: (Vector CPower, Vector CVoltage)

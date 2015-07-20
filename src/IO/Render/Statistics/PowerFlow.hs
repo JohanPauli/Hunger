@@ -18,7 +18,7 @@ import Analysis.Statistics.PowerFlow
 
 
 -- | Render the results of a power flow analysis as pretty print.
-renderPF :: Power -> Renderer PowerFlowStatistics
+renderPF :: Power -> Renderer PowerFlowResult
 renderPF base (n,bs,ls) =
      "Power flow converged in " <> toBS n <> " iterations" <> endl
   <> "Bus summary:" <> endl

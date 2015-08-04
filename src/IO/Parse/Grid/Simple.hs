@@ -113,4 +113,6 @@ parseLine = do
   lTo <- decimal
   sep
   lImpedance <- complexDouble
-  return $ SLine lID lFrom lTo lImpedance
+  sep
+  lSusceptance <- double
+  return $ SLine lID lFrom lTo lImpedance lSusceptance

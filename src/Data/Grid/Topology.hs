@@ -34,12 +34,16 @@ module Data.Grid.Topology
 , joinEdges
 , relabel
 , shiftNodes
+, nodeMap
 ) where
 
 
 
 -- List processing:
 import Data.List (sort,sortBy)
+
+-- Fancy fmapping:
+import Data.Functor ((<$>))
 
 -- Functions on functions:
 import Data.Function (on)
@@ -176,3 +180,10 @@ relabel is ns es = (newIs, newEs)
 -- keyset). This isn't guaranteed, so this should probably be changed.
 shiftNodes :: (Noded a) => IntMap NodeID -> [a] -> [a]
 shiftNodes shifts = fmap (\nc -> setNodeID (shifts!nodeID nc) nc)
+
+-- | Make an IntMap representing a topological sort of something
+-- node-connected; sorted by and Ord(ering).
+nodeMap :: (Ord a, Noded a) => [a] -> IntMap Int
+nodeMap classes = M.fromList $ zip sorted [1..]
+  where
+    sorted = nodeID <$> sort classes

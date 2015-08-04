@@ -153,6 +153,7 @@ data SLine =
   , slineFrom :: NodeID -- ^ Line 'origin' bus.
   , slineTo :: NodeID -- ^ Line 'destination' bus.
   , slineImpedance :: CImpedance -- ^ Line impedance.
+  , slineSusceptance :: Susceptance -- ^ Line charging susceptance.
   } deriving (Show)
 
 -- | Lines are edges in the topology, and so are connected to edges.
@@ -162,3 +163,4 @@ instance Edged SLine where
 -- | The line is a line, obviously.
 instance Line SLine where
   lineZ = slineImpedance
+  lineB = slineSusceptance

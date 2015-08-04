@@ -73,5 +73,5 @@ lineDetails trm top ls adm v = fmap calcRes (joinEdges top ls)
         j = trm M.! jO
     -- The power through a line from i to j is given by this.
     -- Not very legible, but that's just the way it is.
-    pq i j = (v!(i-1))^(2::Int) * V.sum (adm!(i-1))
+    pq i j = --(v!(i-1))^(2::Int) * V.sum (adm!(i-1))
       - v!(i-1) * conjugate ((v!(i-1) - v!(j-1)) * adm!(i-1)!(j-1))

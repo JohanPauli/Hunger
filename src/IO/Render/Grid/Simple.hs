@@ -52,7 +52,7 @@ renderGrid
   <> endl
   <> "Grid lines" <> endl
   <> "ID" <> sep <> "fBus" <> sep <> "tBus" <> sep
-  <> "lImp [p.u.]" <> sep <> "Smax [MVA]" <> endl
+  <> "lImp [p.u.]" <> sep <> "B [p.u.]" <> endl
   <> renderLines ls
 
 
@@ -119,6 +119,7 @@ renderLine
   , slineFrom=lFrom
   , slineTo=lTo
   , slineImpedance=lImp
+  , slineSusceptance=lSus
   } =
      toBS lID
   <> sep
@@ -127,3 +128,5 @@ renderLine
   <> toBS lTo
   <> sep
   <> renderComplex lImp
+  <> sep
+  <> toBS lSus

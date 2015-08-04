@@ -18,12 +18,8 @@ module Analysis.PowerFlow
 -- Lists and sorting:
 import Data.List (sort,group)
 
--- Fancy fmapping:
-import Data.Functor ((<$>))
-
 -- IntMapping:
 import Data.IntMap (IntMap)
-import qualified Data.IntMap as M
 
 -- Local:
 import Data.VecMat (Matrix, Vector)
@@ -79,7 +75,8 @@ solvePF Jacobi top bs gs los lis sads =
       prepareAC top bs gs los lis sads
 
 
--- | Prepare the power flow, classifying and sorting buses then building
+
+-- | Prepare the AC power flow, classifying and sorting buses then building
 -- the admittance matrix and initial power and voltage vectors.
 prepareAC :: ( Topological a, Bus b, Generator c, Load d
              , Line e, ShuntAdmittance f )
@@ -95,8 +92,7 @@ prepareAC top bs gs los lis sads = (tr, nPQ, nPV, adm, s0, v0)
   where
     -- First, the buses are classified (gen => PV, biggest gen => Slack).
     classes = classifyBuses bs gs
-    tr = M.fromList $ zip sorted [1..]
-    sorted = (nodeID . escape) <$> sort classes
+    tr = nodeMap classes
     -- Finally, the admittance matrix as well as inital power and voltage
     -- vectors are made.
     adm = admittanceMatrix tr top bs lis sads

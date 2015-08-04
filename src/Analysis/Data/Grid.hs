@@ -76,6 +76,11 @@ instance Ord (PFType a) where
   compare (SL _) (SL _) = EQ
   compare _ _ = GT
 
+-- | If something with a PFType is noded, then PFType version is too.
+instance (Noded a) => Noded (PFType a) where
+  nodeID = nodeID . escape
+  setNodeID i = fmap (setNodeID i)
+
 -- | Remove the context from a `PFType` element.
 escape :: PFType a -> a
 escape (PQ a) = a
@@ -204,9 +209,10 @@ admittanceMatrix tr top bs ls as =
     addLine m (l, Edge _ (iO,jO)) =
         V.updateM (i,j) (-admNew + m!(i-1)!(j-1))
       $ V.updateM (j,i) (-admNew + m!(j-1)!(i-1))
-      $ V.updateM (j,j) (admNew + m!(j-1)!(j-1))
-      $ V.updateM (i,i) (admNew + m!(i-1)!(i-1)) m
+      $ V.updateM (j,j) (admNew + susc + m!(j-1)!(j-1))
+      $ V.updateM (i,i) (admNew + susc + m!(i-1)!(i-1)) m
       where
         i = tr M.! iO
         j = tr M.! jO
+        susc = 0 :+ lineB l / 2
         admNew = 1 / lineZ l

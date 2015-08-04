@@ -2,7 +2,7 @@
   A program for simulating Power Systems (also known as Grids).
 
   The main portion of the program encapsulates configuration and the
-  execution of such.
+  execution of configured actions.
 -}
 module Main where
 
@@ -44,7 +44,7 @@ getConfig (fp:_) = parseFile fp parseConfig
 -- natural representation.
 --
 -- This is a hack and the problem it solves can still be considered an
--- open problem.
+-- something unsolved.
 process :: Config -> IO ()
 process Config
   { confGridFile=fp

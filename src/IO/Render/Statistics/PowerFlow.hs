@@ -28,6 +28,11 @@ renderPF base (n,bs,ls) =
   <> "Line summary:" <> endl
   <> lineHeader <> endl
   <> foldMap (\l -> renderLine base l <> endl) ls
+  <> pack (printf "%60s %8.3f  %8.3f" ("Total: "::String)
+      (realPart s) (imagPart s))
+  <> endl
+  where
+    s = foldl (\x (_,_,_,sf,st) -> x+(base:+0) * (sf+st)) 0 ls
 
 -- | Render the headers for the power flow buses.
 busHeader :: ByteString
@@ -60,12 +65,12 @@ lineHeader =
 -- | Render the line results data.
 renderLine :: Power -> Renderer LineResult
 renderLine base (i,f,t,pf:+qf,pt:+qt) =
-  pack (printf "%5d  %5d  %5d  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f  %8.2f"
+  pack (printf "%5d  %5d  %5d  %8.2f  %8.2f  %8.2f  %8.2f  %8.3f  %8.3f"
     i f t bpf bqf bpt bqt bpl bql)
   where
     bpf = base * pf
     bqf = base * qf
     bpt = base * pt
     bqt = base * qt
-    bpl = abs $ bpf + bpt
-    bql = abs $ bqf + bqt
+    bpl = bpf + bpt
+    bql = bqf + bqt

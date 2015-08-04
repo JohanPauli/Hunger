@@ -178,5 +178,7 @@ parseLine i = do
   lR <- double
   skipSpace
   lX <- double
+  skipSpace
+  lB <- double
   skipLine
-  return $ SLine i lFrom lTo (lR :+ lX)
+  return $ SLine i lFrom lTo (lR :+ lX) lB

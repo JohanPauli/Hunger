@@ -10,21 +10,25 @@ module IO.Parse.Grid.MCF
 
 
 
--- Local:
-import Data.Grid.Types
-import Data.Grid.Simple
+-- Electrical types:
+import Util.Types
+
+-- Parsing utilities:
 import IO.Parse.Util
+
+-- The data structure to be parsed:
+import Natural.Simple
 
 
 
 -- Parsing MCF cases:
 -- | The parser recursively fills a grid object's fields; probably not
 -- the best approach, but it works.
-parseMCF :: Parser Grid
-parseMCF = parseField $ return emptyGrid{gridName="MCF grid"}
+parseMCF :: Parser SGrid
+parseMCF = parseField $ return emptySGrid{gridName="MCF grid"}
 
--- | Parses an MCF case into a `Grid`.
-parseField :: Parser Grid -> Parser Grid
+-- | Parses an MCF case into a `SGrid`.
+parseField :: Parser SGrid -> Parser SGrid
 parseField gp =
   -- Skip any space at beginning of line.
   skipSpace >>
@@ -42,7 +46,7 @@ parseField gp =
 
 -- Parsing the base MVA:
 -- | Parse the 'mpc.baseMVA' field of the MATLAB file.
-parseBaseMVA :: Parser Grid -> Parser Grid
+parseBaseMVA :: Parser SGrid -> Parser SGrid
 parseBaseMVA gp = do
   g <- gp
   base <- double
@@ -53,7 +57,7 @@ parseBaseMVA gp = do
 
 -- Parsing MCF Buses:
 -- | Parse the bus field of a MCF file.
-parseBuses :: Parser Grid -> Parser Grid
+parseBuses :: Parser SGrid -> Parser SGrid
 parseBuses gp =
   -- Either the structure ends, or an entry is to be parsed.
   skipSpace >>
@@ -75,9 +79,9 @@ parseBus = do
   -- Bus type skipped.
   skipVal
   -- P and Q loads.
-  p <- double
+  busP <- double
   skipSpace
-  q <- double
+  busQ <- double
   skipSpace
   -- Shunt admittance.
   gs <- double
@@ -99,14 +103,14 @@ parseBus = do
     , sbusVoltage = mkPolar vMag (toRad vAng)
     , sbusVoltageBase = baseKV
     , sbusAdmittance = gs :+ bs
-    , sbusPower = p :+ q
+    , sbusPower = busP :+ busQ
     }
 
 
 
 -- Generator parsing:
 -- | Parse the generator field of an MCF file.
-parseGens :: Parser Grid -> Parser Grid
+parseGens :: Parser SGrid -> Parser SGrid
 parseGens gp =
   skipSpace >>
   ( do
@@ -151,7 +155,7 @@ parseGen = do
 
 -- Parsing MCF lines.
 -- | Parse the line field of a MCF file.
-parseLines :: Parser Grid -> Parser Grid
+parseLines :: Parser SGrid -> Parser SGrid
 parseLines gp =
   skipSpace >>
   ( do

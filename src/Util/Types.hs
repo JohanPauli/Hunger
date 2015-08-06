@@ -1,16 +1,11 @@
 {- |
-  Commonly used types for the system.
+  Type used everywhere, representations of different kinds of electrical
+  values and other things for calculating with them.
 -}
-module Data.Grid.Types
+module Util.Types
 (
--- * Normalizable units.
-  PerUnit (..)
-
--- * Basic types
-, Name
-
 -- * Electrical types
-, Power, CPower
+  Power, CPower
 , Voltage, CVoltage
 , Current, CCurrent
 , Impedance, CImpedance
@@ -23,7 +18,7 @@ module Data.Grid.Types
 , toRad
 , toDeg
 
--- * Other libraries
+-- Exports complex numbers.
 , module Data.Complex
 )
 where
@@ -32,21 +27,6 @@ where
 
 -- Complex numbers:
 import Data.Complex
-
-
-
--- | Things which are normalizable to per unit.
---
--- Obviously, @denormalize . normalize = id@.
-class PerUnit a where
-  normalize :: a -> a
-  denormalize :: a -> a
-
-
-
--- Basic types.
--- | Names for things.
-type Name = String
 
 
 

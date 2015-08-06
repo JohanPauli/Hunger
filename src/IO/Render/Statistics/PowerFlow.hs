@@ -10,16 +10,20 @@ where
 
 
 
--- Local:
-import Data.Grid.Types
+-- Electrical types:
+import Util.Types
+
+-- Rendering utilities:
 import IO.Render.Util
-import Analysis.Statistics.PowerFlow
+
+-- The rendered data structures:
+import Statistics.PowerFlow
 
 
 
 -- | Render the results of a power flow analysis as pretty print.
-renderPF :: Power -> Renderer PowerFlowResult
-renderPF base (n,bs,ls) =
+renderPF :: Power -> Renderer PFStats
+renderPF base (PFStats n bs ls) =
      "Power flow converged in " <> toBS n <> " iterations" <> endl
   <> "Bus summary:" <> endl
   <> busHeader <> endl
@@ -32,7 +36,7 @@ renderPF base (n,bs,ls) =
       (realPart s) (imagPart s))
   <> endl
   where
-    s = foldl (\x (_,_,_,sf,st) -> x+(base:+0) * (sf+st)) 0 ls
+    s = foldl (\x (LineFlow _ _ _ sf st) -> x+(base:+0) * (sf+st)) 0 ls
 
 -- | Render the headers for the power flow buses.
 busHeader :: ByteString
@@ -45,8 +49,8 @@ busHeader =
       (" P (MW) "::String) ("Q (MVAr)"::String))
 
 -- | Render the bus result data.
-renderBus :: Power -> Renderer BusResult
-renderBus base (i, v, p :+ q) =
+renderBus :: Power -> Renderer BusFlow
+renderBus base (BusFlow i  v (p :+ q)) =
   pack $ printf "%5d  %8.3f  %8.3f  %8.2f  %8.2f"
     i (magnitude v) (toDeg $ phase v) (p * base) (q * base)
 
@@ -63,8 +67,8 @@ lineHeader =
      ("P (MW) "::String) ("Q (MVAr)"::String))
 
 -- | Render the line results data.
-renderLine :: Power -> Renderer LineResult
-renderLine base (i,f,t,pf:+qf,pt:+qt) =
+renderLine :: Power -> Renderer LineFlow
+renderLine base (LineFlow i f t (pf:+qf) (pt:+qt)) =
   pack (printf "%5d  %5d  %5d  %8.2f  %8.2f  %8.2f  %8.2f  %8.3f  %8.3f"
     i f t bpf bqf bpt bqt bpl bql)
   where

@@ -3,8 +3,8 @@
 -}
 module IO.Render.Grid.Simple
 (
--- * Grid rendering
-  renderGrid
+-- * SGrid rendering
+  renderSGrid
 
 -- * Line rendering
 , renderLine
@@ -17,40 +17,42 @@ module IO.Render.Grid.Simple
 
 
 
--- Local
+-- Rendering utilities:
 import IO.Render.Util
-import Data.Grid.Simple
+
+-- The rendered data structure:
+import Natural.Simple
 
 
 
--- Grid rendering.
--- | Render a `Grid` to a file, in rigid format.
-renderGrid :: Renderer Grid
-renderGrid
-  Grid
+-- SGrid rendering.
+-- | Render a `SGrid` to a file, in rigid format.
+renderSGrid :: Renderer SGrid
+renderSGrid
+  SGrid
   { gridName=name
   , gridMVAbase=base
   , gridBuses=bs
   , gridGens=gs
   , gridLines=ls
   } =
-     "Grid name:\n"
+     "SGrid name:\n"
   <> renderString name <> endl
   <> endl
-  <> "Grid power base [MVA] (for p.u. conversion):" <> endl
+  <> "SGrid power base [MVA] (for p.u. conversion):" <> endl
   <> toBS base <> endl
   <> endl
-  <> "Grid buses" <> endl
+  <> "SGrid buses" <> endl
   <> "Name" <> sep <> "ID" <> sep <> "Load [p.u.]" <> sep
   <> "Admittance [p.u.]" <> sep <> "Voltage [p.u.]" <> sep
   <> "Vbase [kV]" <> endl
   <> renderBuses bs
   <> endl
-  <> "Grid generators" <> endl
+  <> "SGrid generators" <> endl
   <> "Bus ID" <> sep <> "Generation [p.u.]" <> endl
   <> renderGens gs
   <> endl
-  <> "Grid lines" <> endl
+  <> "SGrid lines" <> endl
   <> "ID" <> sep <> "fBus" <> sep <> "tBus" <> sep
   <> "lImp [p.u.]" <> sep <> "B [p.u.]" <> endl
   <> renderLines ls
@@ -59,7 +61,7 @@ renderGrid
 
 -- Bus rendering.
 -- | Render `Buses` as text.
-renderBuses :: Renderer Buses
+renderBuses :: Renderer [SBus]
 renderBuses = foldMap $ \bus -> renderBus bus <> endl
 
 -- | Render the information contained in a `SBus`.
@@ -89,7 +91,7 @@ renderBus
 
 -- Generator rendering:
 -- | Render 'Gens' as text.
-renderGens :: Renderer Gens
+renderGens :: Renderer [SGen]
 renderGens = foldMap $ \gen -> renderGen gen <> endl
 
 -- | Render the information contained in a `SGen`.
@@ -105,10 +107,9 @@ renderGen
 
 
 
-
 -- Line rendering.
 -- | Render `Lines` as text.
-renderLines :: Renderer Lines
+renderLines :: Renderer [SLine]
 renderLines = foldMap $ \line -> renderLine line <> endl
 
 -- | Render the information contained in a `SLine`.

@@ -5,7 +5,7 @@
   The topology of a power system is a graph. A graph is composed of Nodees
   and Edges connecting those Nodees. Properly, it is a directed multigraph.
 -}
-module Data.Grid.Topology
+module Interface.Topology
 (
 -- * Identifiers
   NodeID
@@ -30,27 +30,22 @@ module Data.Grid.Topology
 , Edge (..)
 , mkEdges
 
--- * Relational operations.
+-- * Operations on Topologies
 , joinEdges
-, relabel
-, shiftNodes
 , nodeMap
 ) where
 
 
 
 -- List processing:
-import Data.List (sort,sortBy)
+import Data.List (sort)
 
 -- Fancy fmapping:
 import Data.Functor ((<$>))
 
--- Functions on functions:
-import Data.Function (on)
-
--- IntMap, for label transformations.
-import Data.IntMap (IntMap,(!))
-import qualified Data.IntMap as M
+-- IntMapping:
+import Data.IntMap (IntMap)
+import qualified Data.IntMap as I
 
 
 
@@ -143,47 +138,26 @@ mkEdges n = foldr addEdge [] [1..n]
 
 
 
--- Relational operations.
+-- Operations having to do with topologies
 -- | The relational JOIN operation, makes a tuple of (the joined type, its
 -- associated edge).
 --
 -- For operations on elements which require its topological information.
-joinEdges :: (Topological a, Edged b) => a -> [b] -> [(b,Edge)]
-joinEdges top ecs = [(e,find e es) | e <- ecs]
+joinEdges :: (Topological a, Edged b) => a -> [b] -> [(Edge,b)]
+joinEdges top ecs = fmap snd $ I.toList $ joinMaps es ec
   where
-    es = edges top
-    find :: (Edged b) => b -> [Edge] -> Edge
-    find ec (Edge i (a,b):es') =
-      if edgeID ec == i then Edge i (a,b) else find ec es'
-    find _ _ = error "Something wrong with the topology"
+    es = I.fromList [(edgeID e,e) | e <- edges top]
+    ec = I.fromList [(edgeID e,e) | e <- ecs]
 
-
--- | Relabels a topology's nodes by provided node categories.
+-- | A relational JOIN operation on Int-indexed maps.
 --
--- This might not be a good idea.
-relabel :: (Ord a)
-        => IntMap a -- ^ Categories to sort by.
-        -> Nodes -- ^ Nodes to sort.
-        -> Edges -- ^ Edges must reflect node labels.
-        -> (IntMap NodeID, Edges) -- ^ (ID shift map, New Edges).
-relabel is ns es = (newIs, newEs)
-  where
-    nIDs = sort $ fmap nodeID ns
-    newIs = M.fromList $ zip sorted nIDs
-    sorted = fmap fst $ sortBy (compare `on` snd) $ M.toList is
-    chEdge (Edge n (i,j)) = Edge n (newIs!i, newIs!j)
-    newEs = fmap chEdge es
-
--- | Shift the node labels of node-connected elements.
---
--- Assumes that the map is total (the ID of every shifted node is in its
--- keyset). This isn't guaranteed, so this should probably be changed.
-shiftNodes :: (Noded a) => IntMap NodeID -> [a] -> [a]
-shiftNodes shifts = fmap (\nc -> setNodeID (shifts!nodeID nc) nc)
+-- Assumes (a big assumption) that both lists are of equal size.
+joinMaps :: IntMap a -> IntMap b -> IntMap (a,b)
+joinMaps = I.intersectionWith (,)
 
 -- | Make an IntMap representing a topological sort of something
--- node-connected; sorted by and Ord(ering).
+-- node-connected; sorted by an Ord(ering).
 nodeMap :: (Ord a, Noded a) => [a] -> IntMap Int
-nodeMap classes = M.fromList $ zip sorted [1..]
+nodeMap classes = I.fromList $ zip sorted [1..]
   where
     sorted = nodeID <$> sort classes

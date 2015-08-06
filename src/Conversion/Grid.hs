@@ -1,10 +1,11 @@
 {- |
-  Translations on power systems.
+  Functions for converting from data structures representing a grid or parts
+  thereof.
 
   This is mostly for generating data structures suitable for use
   in mathematical models.
 -}
-module Analysis.Data.Grid
+module Conversion.Grid
 (
 -- * Bus classification
   PFType (..)
@@ -12,9 +13,9 @@ module Analysis.Data.Grid
 , classifyBuses
 
 -- * Power flow data structure construction
-, powerVec
-, voltageVec
-, admittanceMatrix
+, makeS
+, makeV
+, makeY
 ) where
 
 
@@ -26,19 +27,23 @@ import Data.Function (on)
 -- Folding:
 import qualified Data.Foldable as F
 
--- Matrices/Vectors:
-import Data.VecMat (Matrix, Vector, (!))
-import qualified Data.VecMat as V
-
 -- IntMaps:
 import Data.IntMap (IntMap)
-import qualified Data.IntMap as M
+import qualified Data.IntMap as I
 
--- Local:
-import Data.Grid.Types
-import Data.Grid.Topology
-import Data.Grid.Node
-import Data.Grid.Edge
+-- Electrical types:
+import Util.Types
+
+-- Matrices/Vectors:
+import Util.Vector (Vector)
+import qualified Util.Vector as V
+import Util.Matrix (Matrix, (!))
+import qualified Util.Matrix as M
+
+-- Interfaces:
+import Interface.Topology
+import Interface.Node
+import Interface.Edge
 
 
 
@@ -103,14 +108,16 @@ classifyBuses bs gs = fmap label bs
   where
     label b
       | nodeID b==slID = SL b
-      | M.member (nodeID b) genMap = PV b
+      | I.member (nodeID b) genMap = PV b
       | otherwise = PQ b
+
     -- A map for checking if any generator is at any bus.
-    genMap = M.fromList [(nodeID g,True) | g <- gs]
+    genMap = I.fromList [(nodeID g,True) | g <- gs]
+
     -- The slack bus ID is the ID of the bus with the generator with
     -- the largest available generation.
     slID = (nodeID . head) gs'
-    gs' = sortBy (compare `on` (\x -> realPart $ genPower x - genMax x)) gs
+    gs' = sortBy (compare `on` (\x -> realPart $ genS x - genMax x)) gs
 
 
 
@@ -120,29 +127,29 @@ classifyBuses bs gs = fmap label bs
 -- Only values from generators and loads are known in this case.
 --
 --  Assumes that values are in per-unit format.
-powerVec :: (Generator a, Load b)
-     => IntMap Int -- ^ Bus ID transformations.
-     -> [a] -- ^ Generators.
-     -> [b] -- ^ Loads.
-     -> Vector CPower -- ^ Result, a power vector.
-powerVec tr gens loads =
+makeS :: (Generator a, Load b)
+      => IntMap Int -- ^ Bus ID transformations.
+      -> [a] -- ^ Generators.
+      -> [b] -- ^ Loads.
+      -> Vector CPower -- ^ Result, a power vector.
+makeS tr gens loads =
     (\v -> foldl addGen v gens)
   $ foldl addLoad (V.replicate len (0:+0)) loads
   where
     -- The number of entries in the vector should be the same as the number
     -- of nodes in the topology (assumes contiguously numbered nodes, may
     -- not be true and everything is ruined; the program will likely crash).
-    len = M.size tr
+    len = I.size tr
 
     -- Add a generator's power to the vector.
-    addGen v gen = V.updateV i (v!(i-1) + genPower gen) v
+    addGen v gen = V.update i (v!i + genS gen) v
       where
-        i = tr M.! nodeID gen
+        i = (tr I.! nodeID gen) - 1
 
     -- Subtract
-    addLoad v load = V.updateV i (v!(i-1) - loadPower load) v
+    addLoad v load = V.update i (v!i - loadS load) v
       where
-        i = tr M.! nodeID load
+        i = (tr I.! nodeID load) - 1
 
 
 
@@ -152,43 +159,45 @@ powerVec tr gens loads =
 -- assumes every other value to be 1:+0.
 --
 -- Assumes that values are in per-unit format.
-voltageVec :: (Bus a, Generator b)
-           => IntMap Int -- ^ Node ID transformations.
-           -> [a] -- ^ All buses, slack in the back.
-           -> [b] -- ^ All generators.
-           -> Vector CVoltage -- ^ Result, a voltage vector.
-voltageVec tr buses gs =
-    (`addBus` sl)
-  $ (\x -> foldl addGen x gs)
-  $ foldl addBus (V.replicate len (1:+0)) bs
+makeV :: (Bus a, Generator b)
+      => IntMap Int -- ^ Node ID transformations (must be a total map!).
+      -> [a] -- ^ All buses, slack in the back.
+      -> [b] -- ^ All generators.
+      -> Vector CVoltage -- ^ Result, a voltage vector.
+makeV tr buses gs =
+    flip addBus sl
+  $ flip (F.foldl' addGen) gs
+  $ flip (F.foldl' addBus) bs
+  $ V.replicate len (1:+0)
   where
     (sl:bs) = reverse buses
     len = length buses
-    addBus v b = V.updateV (tr M.! nodeID b) (busVoltage b) v
-    addGen v g = V.updateV i (newV:+imagV) v
+    addBus v b = V.update i (busVoltage b) v
       where
-        i = tr M.! nodeID g
-        imagV = imagPart $ v!(i-1)
-        newV = genVoltage g / magnitude ((v!(i-1))^(2::Int))
+        i = (tr I.! nodeID b) - 1
+    addGen v g = V.update i (newV:+imagV) v
+      where
+        i = (tr I.! nodeID g) - 1
+        imagV = imagPart (v!i)
+        newV = genVm g / magnitude ((v!i)^(2::Int))
 
 
 
 -- Admittance matrices.
 -- | Make the Y-bus matrix. Assumes that values are in per-unit format.
-admittanceMatrix :: (Topological a, Bus b, Line c, ShuntAdmittance d)
-                 => IntMap Int -- ^ Node ID transformations.
-                 ->  a  -- ^ System topology.
-                 -> [b] -- ^ System buses (implies dimension of matrix).
-                 -> [c] -- ^ Lines (simple, impedances).
-                 -> [d] -- ^ Shunt admittances (bus-connected components).
-                 -> Matrix CAdmittance -- ^ Result, an admittance matrix.
-admittanceMatrix tr top bs ls as =
+makeY :: (Topological a, Line b, ShuntAdmittance c)
+      => IntMap Int -- ^ Node ID transformations (must be a total map!).
+      ->  a  -- ^ System topology.
+      -> [b] -- ^ Lines (simple, impedances).
+      -> [c] -- ^ Shunt admittances (bus-connected components).
+      -> Matrix CAdmittance -- ^ Result, an admittance matrix.
+makeY tr top ls as =
     flip (F.foldl' addSA) as
   $ flip (F.foldl' addLine) joined
-  $ V.diag (V.replicate len 0)
+  $ M.diag (V.replicate len 0)
   where
     -- Dimension of the admittance matrix is the number of buses in the grid.
-    len = length bs
+    len = I.size tr
     -- Lines must know their position in the grid.
     joined = joinEdges top ls
 
@@ -196,23 +205,23 @@ admittanceMatrix tr top bs ls as =
     -- For an admittance at i, adds a new admittance to the ii entry.
     addSA :: (ShuntAdmittance a)
           => Matrix CAdmittance -> a -> Matrix CAdmittance
-    addSA m a = V.updateM (i,i) admNew m
+    addSA m a = M.update (i,i) admNew m
       where
-        i = tr M.! nodeID a
-        admNew = shuntAdmittance a + m!(i-1)!(i-1)
+        i = (tr I.! nodeID a) - 1
+        admNew = shuntY a + m!i!i
 
     -- Add a line admittance to the admittance matrix.
     -- For a line from i to j, it adds a new admittance to the ij, ji
     -- ii, and jj entries of the matrix.
     addLine :: (Line a)
-            => Matrix CAdmittance -> (a,Edge) -> Matrix CAdmittance
-    addLine m (l, Edge _ (iO,jO)) =
-        V.updateM (i,j) (-admNew + m!(i-1)!(j-1))
-      $ V.updateM (j,i) (-admNew + m!(j-1)!(i-1))
-      $ V.updateM (j,j) (admNew + susc + m!(j-1)!(j-1))
-      $ V.updateM (i,i) (admNew + susc + m!(i-1)!(i-1)) m
+            => Matrix CAdmittance -> (Edge, a) -> Matrix CAdmittance
+    addLine m (Edge _ (iO,jO), l) =
+        M.update (i,j) (-admNew + m!i!j)
+      $ M.update (j,i) (-admNew + m!j!i)
+      $ M.update (j,j) (admNew + susc + m!j!j)
+      $ M.update (i,i) (admNew + susc + m!i!i) m
       where
-        i = tr M.! iO
-        j = tr M.! jO
+        i = (tr I.! iO) - 1
+        j = (tr I.! jO) - 1
         susc = 0 :+ lineB l / 2
         admNew = 1 / lineZ l

@@ -10,9 +10,11 @@ where
 
 
 
--- Parsing:
-import Data.Config
-import IO.Parse.Util as P8
+-- Parsing utilities:
+import IO.Parse.Util
+
+-- The parsed data structure:
+import Natural.Config
 
 
 

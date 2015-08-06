@@ -2,7 +2,17 @@
   Typeclass-based statistics; uses some of the typeclasses from
   "Data.Grid.Node"
 -}
-module Analysis.Statistics.Grid where
+module Statistics.Grid
+(
+-- * Summary Statistics
+  count
+, total
+
+-- * Detail Statistics
+, BusData (..)
+, busData
+)
+where
 
 
 
@@ -20,10 +30,12 @@ import qualified Data.IntMap as M
 import Data.List (sortBy, groupBy)
 import Data.Function (on)
 
--- Local:
-import Data.Grid.Types
-import Data.Grid.Topology
-import Data.Grid.Node
+-- Electrical types:
+import Util.Types
+
+-- Interfaces:
+import Interface.Topology
+import Interface.Node
 
 
 
@@ -36,28 +48,20 @@ count = F.foldl' (const . (+1)) 0
 total :: (Foldable f, Num b) => (a -> b) -> f a -> b
 total f = F.foldl' (\x e -> x+f e) 0
 
--- | Total generating capacity.
-totalGenMax :: (Foldable f, Generator a) => f a -> CPower
-totalGenMax = total genMax
-
--- | Total load.
-totalLoad :: (Foldable f, Load a) => f a -> CPower
-totalLoad = total loadPower
-
 
 
 -- Detail statistics.
 -- | Relevant bus data is ID, Complex voltage, generating power, load power.
-type BusData = [(NodeID, CVoltage, CPower, CPower)]
+data BusData = BusData NodeID CVoltage CPower CPower
 
 -- | Bus data.
 busData :: (Bus a, Generator b, Load c)
         => [a] -- ^ Grid buses.
         -> [b] -- ^ Generators attached to buses.
         -> [c] -- ^ Loads attached to buses.
-        -> BusData
+        -> [BusData]
 busData bs gs ls =
-    fmap (\(a,(b,c,d)) -> (a,b,c,d)) $ M.toAscList
+    fmap (\(a,(b,c,d)) -> BusData a b c d) $ M.toAscList
   $ M.intersectionWith addLoad lTots
   $ M.intersectionWith addGen gTots
   $ F.foldl' addBus M.empty bs
@@ -77,5 +81,5 @@ busData bs gs ls =
 
     -- The actual totals.
     gTots :: IntMap (CVoltage, CPower, CPower)
-    gTots = (\a -> (0,a,0)) <$> (mkTots genPower . grp) gs
-    lTots = (\a -> (0,0,a)) <$> (mkTots loadPower . grp) ls
+    gTots = (\a -> (0,a,0)) <$> (mkTots genS . grp) gs
+    lTots = (\a -> (0,0,a)) <$> (mkTots loadS . grp) ls

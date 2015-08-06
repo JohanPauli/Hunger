@@ -1,43 +1,46 @@
 {- |
-  An implementation of a natural grid representation.
+  Natural data representation similar to the MatPower format.
 
-  This is somewhat like the MatPower format for grids.
+  The grid type is a database-like structure, while the bus, generator,
+  and line types are record-like structures.
 -}
-module Data.Grid.Simple
+module Natural.Simple
 (
--- * Database-like Grid
-  Grid (..)
-, emptyGrid
+-- * Database-Like Grid
+  SGrid (..)
+, emptySGrid
 
--- * Record-like Bus
-, Buses
+-- * Record-Like Bus
 , SBus (..)
 
--- * Record-like Generator
-, Gens
+-- * Record-Like Generator
 , SGen (..)
 
--- * Record-like Line
-, Lines
+-- * Record-Like Line
 , SLine (..)
 ) where
 
 
 
--- Local:
-import Data.Grid.Types
-import Data.Grid.Topology
-import Data.Grid.Node
-import Data.Grid.Edge
+-- Electrical types:
+import Util.Types
+
+-- (Interfaces to) Topological, grid, and device information:
+import Interface.Topology
+  (Topological (..), Noded (..), Edged (..)
+  , NodeID, EdgeID, Node (..), Edge (..) )
+import Interface.Grid (PerUnit (..))
+import Interface.Node (Bus (..), Generator (..), Load (..), ShuntAdmittance (..))
+import Interface.Edge
 
 
 
 -- Database-like grid:
 -- | A grid type sufficient for Power Flow analysis and little else; for
 -- demonstration purposes.
-data Grid =
-  Grid
-  { gridName :: Name -- ^ Grid name (e.g. geographical location name).
+data SGrid =
+  SGrid
+  { gridName :: String -- ^ Grid name (e.g. geographical location name).
   , gridMVAbase :: Power -- ^ Grid MVA base, for p.u. conversion.
   , gridBuses :: Buses -- ^ The buses of the grid.
   , gridGens :: Gens -- ^ Generators in the grid.
@@ -47,14 +50,14 @@ data Grid =
 -- | This type of grid carries topological information.
 --
 -- The grid topology can be derived from buses and lines and their relation.
-instance Topological Grid where
+instance Topological SGrid where
   nodes = fmap (Node . nodeID) . gridBuses
   edges = fmap (\l -> Edge (edgeID l) (slineFrom l, slineTo l)) . gridLines
 
 -- | The grid carries values which are not in per-unit format, and as such
 -- must be normalized for use.
-instance PerUnit Grid where
-  normalize grid@Grid{gridMVAbase=baseMVA, gridBuses=bs, gridGens=gs} =
+instance PerUnit SGrid where
+  normalize grid@SGrid{gridMVAbase=baseMVA, gridBuses=bs, gridGens=gs} =
     grid
     { gridBuses = fmap (\b -> b{sbusPower=sbusPower b/base
                                ,sbusAdmittance=sbusAdmittance b/base}) bs
@@ -63,7 +66,7 @@ instance PerUnit Grid where
                               ,sgenMin=sgenMin g/base}) gs }
     where
       base = baseMVA :+ 0
-  denormalize grid@Grid{gridMVAbase=baseMVA, gridBuses=bs, gridGens=gs} =
+  denormalize grid@SGrid{gridMVAbase=baseMVA, gridBuses=bs, gridGens=gs} =
     grid
     { gridBuses = fmap (\b -> b{sbusPower=sbusPower b*base
                                ,sbusAdmittance=sbusAdmittance b*base}) bs
@@ -74,8 +77,8 @@ instance PerUnit Grid where
       base = baseMVA :+ 0
 
 -- | An empty grid, for parsing into
-emptyGrid :: Grid
-emptyGrid = Grid "" 0.0 [] [] []
+emptySGrid :: SGrid
+emptySGrid = SGrid "" 0.0 [] [] []
 
 
 
@@ -87,7 +90,7 @@ type Buses = [SBus]
 -- connected loads.
 data SBus =
   SBus
-  { sbusName :: Name -- ^ The bus name (e.g. geographical location name).
+  { sbusName :: String -- ^ The bus name (e.g. geographical location name).
   , sbusID :: NodeID -- ^ The bus number.
   , sbusVoltage :: CVoltage -- ^ Bus actual voltage (p.u.).
   , sbusVoltageBase :: Voltage -- ^ Bus nominal voltage (e.g. 60 kV).
@@ -106,11 +109,11 @@ instance Bus SBus where
 
 -- | These buses also carry load information.
 instance Load SBus where
-  loadPower = sbusPower
+  loadS = sbusPower
 
 -- | As well as shunt admittance information.
 instance ShuntAdmittance SBus where
-  shuntAdmittance = sbusAdmittance
+  shuntY = sbusAdmittance
 
 
 
@@ -135,10 +138,10 @@ instance Noded SGen where
 
 -- | Generators are generators.
 instance Generator SGen where
-  genPower = sgenPower
+  genS = sgenPower
   genMax = sgenMax
   genMin = sgenMin
-  genVoltage = sgenVoltage
+  genVm = sgenVoltage
 
 
 

@@ -2,7 +2,7 @@
   Program configuration information. A simple way to define analyses, the grid
   file associated with it, and what should be done with them.
 -}
-module Data.Config
+module Natural.Config
 (
 -- * The config type
   Config (..)
@@ -15,7 +15,7 @@ module Data.Config
 -- Default and empty configurations
 , defaultConfig
 , emptyConfig
-)where
+) where
 
 
 

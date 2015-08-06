@@ -1,7 +1,7 @@
 {- |
   The Jacobi method for solving power flow.
 -}
-module Analysis.PowerFlow.Jacobi
+module Modelling.PowerFlow.Jacobi
 (
 -- * Jacobi power flow solver.
   solvePF
@@ -10,49 +10,50 @@ where
 
 
 
--- Prelude hiding:
-import Prelude hiding ((++))
+-- Foldables:
+import qualified Data.Foldable as F
 
--- Vectors:
-import Data.VecMat (Matrix, Vector, (!), (#>), conj)
-import qualified Data.VecMat as V
-
--- Local:
-import Data.Grid.Types
+-- Electrical types and vectors/matrices:
+import Util.Types
+import Util.Vector (Vector)
+import Util.Matrix (Matrix, (!), (#>), conj)
+import qualified Util.Vector as V
+import qualified Util.Matrix as M
 
 
 
 -- | Solve a power flow problem using the Jacobi method.
 solvePF :: Int -- ^ Number of PQ buses.
         -> Int -- ^ Number of PV buses.
-        -> (Vector CPower, Vector CVoltage) -- ^ Initial values.
+        -> Vector CPower -- ^ Initial power values.
+        -> Vector CVoltage -- ^ Initial voltage values.
         -> Matrix CAdmittance -- ^ Admittance matrix.
-        -> (Vector CVoltage, Int)
-solvePF n m (s0,v0) adm =
-  let (_,sRes,itRes) = jacobiStep (s0, v0, 1) in (sRes,itRes)
+        -> (Int, Vector CVoltage)
+solvePF n m s0 v0 adm =
+  let (_,sRes,itRes) = jacobiStep (s0, v0, 1) in (itRes,sRes)
   where
     -- A step in the jacobi iteration algorithm.
     jacobiStep :: (Vector CPower, Vector CVoltage, Int)
                -> (Vector CPower, Vector CVoltage, Int)
     jacobiStep (s,v,it)
       | mis < 1e-7 = (v * conj (adm #> v),v,it)
-      | it > 1000 = error $ V.dispcf 2 $ V.asRow $ s - v * conj (adm #> v)
+      | it > 1000 = error $ M.dispcf 2 $ M.asRow $ s - v * conj (adm #> v)
       | otherwise = jacobiStep (s',v',it+1)
       where
         -- Updated values for s and v.
         (s',v') = (updatePQPV . updatePV) (s,v)
         -- The convergence criterion parameter, 'power mismatch.'
-        mis = V.norm_Inf $ V.init $ s - v * conj (adm #> v)
+        mis = M.norm_Inf $ V.init $ s - v * conj (adm #> v)
 
     -- Elementwise reciprocal to the diagonal of the admittance matrix.
-    d = V.cmap (1/) $ V.takeDiag adm
+    d = V.map (1/) $ M.takeDiag adm
 
     -- A new voltage estimation uses an estimated power and an older estimated
     -- voltage.
     updatePQPV :: (Vector CPower, Vector CVoltage)
                -> (Vector CPower, Vector CVoltage)
     updatePQPV (s,v) =
-      (s, V.updateV (n+m+1) (v0!(n+m)) (v + d * (conj (s/v) - adm #> v)))
+      (s, V.update (n+m) (v0!(n+m-1)) (v + d * (conj (s/v) - adm #> v)))
 
     -- A new reactive power estimation uses PV bus data.
     updatePV :: (Vector CPower, Vector CVoltage)
@@ -60,6 +61,6 @@ solvePF n m (s0,v0) adm =
     updatePV (s,v) = (updatedQ,v)
       where
         qPV = V.map imagPart $ v * conj (adm #> v)
-        addQ q i = V.updateV i
-          (realPart (q!(i-1)) :+ qPV!(i-1)) q
-        updatedQ = Prelude.foldl addQ s [n+1..n+m]
+        addQ q i = V.update i
+          (realPart (q!i) :+ qPV!i) q
+        updatedQ = F.foldl' addQ s [n..n+m-1]

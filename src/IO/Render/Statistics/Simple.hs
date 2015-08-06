@@ -13,24 +13,28 @@ where
 -- Printing with f:
 import Text.Printf
 
--- Local:
-import Data.Grid.Types
+-- Electrical types:
+import Util.Types
+
+-- Rendering utilities:
 import IO.Render.Util
-import Data.Grid.Simple
-import Analysis.Statistics.Grid
+
+-- The rendered data structure and its statistics:
+import Natural.Simple
+import Statistics.Grid
 
 
 
 -- | Compute and render statistics for a grid.
-renderStats :: Renderer Grid
-renderStats Grid
+renderStats :: Renderer SGrid
+renderStats SGrid
   { gridName=name
   , gridMVAbase=base
   , gridBuses=bs
   , gridGens=gs
   , gridLines=ls
   } =
-     "Grid: " <> pack name <> " with MVA base " <> toBS base <> " MVA" <> endl
+     "SGrid: " <> pack name <> " with MVA base " <> toBS base <> " MVA" <> endl
   <> pack (printf "%15s  %20s %10s %10s\n"
         ("Counts:"::String) ("Sizes:"::String)
         ("P (MW)"::String) ("Q (MVar)"::String))

@@ -60,6 +60,8 @@ parseAnalysis conf = do
   skipSpace
   ana <- (string "Gauss-Seidel Power Flow" >> return PowerFlowGS)
      <|> (string "Jacobi Power Flow" >> return PowerFlowJC)
+     <|> (string "Newton Power Flow" >> return PowerFlowNR)
+     <|> (string "NewtonJ Power Flow" >> return PowerFlowNJ)
      <|> error "An 'Analysis:' field has an invalid value."
   skipLine
   c <- conf

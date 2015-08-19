@@ -102,3 +102,31 @@ testPowerFlow fp = do
   (putStrLn . unpack) $ renderPF
     (gridMVAbase grid)
     (pfStats grid (gridBuses grid) (gridLines grid) resGS)
+
+  putStrLn "Test of Newton-Raphson PF:"
+  let resNR =
+        solvePF
+          NewtonRaphson
+          grid
+          (gridBuses grid)
+          (gridGens grid)
+          (gridBuses grid)
+          (gridLines grid)
+          (gridBuses grid)
+  (putStrLn . unpack) $ renderPF
+    (gridMVAbase grid)
+    (pfStats grid (gridBuses grid) (gridLines grid) resNR)
+
+  putStrLn "Test of Newton-Raphson PF with analytic Jacobian:"
+  let resNJ =
+        solvePF
+          NewtonRaphsonJ
+          grid
+          (gridBuses grid)
+          (gridGens grid)
+          (gridBuses grid)
+          (gridLines grid)
+          (gridBuses grid)
+  (putStrLn . unpack) $ renderPF
+    (gridMVAbase grid)
+    (pfStats grid (gridBuses grid) (gridLines grid) resNJ)

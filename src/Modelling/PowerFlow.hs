@@ -35,14 +35,18 @@ import Conversion.Grid
 -- Specific power flow algorithms:
 import qualified Modelling.PowerFlow.Gauss as GS
 import qualified Modelling.PowerFlow.Jacobi as JC
+import qualified Modelling.PowerFlow.Newton as NR
+import qualified Modelling.PowerFlow.NewtonJ as NJ
 
 
 
 -- Types:
 -- | Known solution methods for power flows.
 data Method =
-    GaussSeidel -- ^ The Gauss-Seidel method from `Analysis.PowerFlow.Gauss`.
-  | Jacobi -- ^ The Jacobi method from `Analysis.PowerFlow.Jacobi`.
+    GaussSeidel -- ^ The Gauss-Seidel method.
+  | Jacobi -- ^ The Jacobi method.
+  | NewtonRaphson -- ^ The Newton-Raphson method with approximated jacobian.
+  | NewtonRaphsonJ -- ^ The Newton-Raphson method with analyic jacobian.
 
 -- | A Power flow result.
 data PFResult =
@@ -74,6 +78,8 @@ solvePF method top bs gs los lis sads =
   case method of
     GaussSeidel -> uncurry (PFResult tr) (GS.solvePF nPQ nPV s0 v0 adm) adm
     Jacobi -> uncurry (PFResult tr) (JC.solvePF nPQ nPV s0 v0 adm) adm
+    NewtonRaphson -> uncurry (PFResult tr) (NR.solvePF nPQ nPV s0 v0 adm) adm
+    NewtonRaphsonJ -> uncurry (PFResult tr) (NJ.solvePF nPQ nPV s0 v0 adm) adm
   where
     -- Classify buses as PQ, PV, and Slack.
     classes = classifyBuses bs gs

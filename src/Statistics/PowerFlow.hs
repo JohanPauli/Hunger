@@ -25,8 +25,8 @@ import qualified Data.IntMap as M
 
 -- Electrical types and Vectors/Matrices:
 import Util.Types
-import Util.Vector as V
-import Util.Matrix as V
+import Util.Vector (Vector)
+import Util.Matrix (Matrix, (#>), (!), conj)
 
 -- Interfaces:
 import Interface.Topology

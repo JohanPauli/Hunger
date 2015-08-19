@@ -33,17 +33,15 @@ import IO.Parse
 import IO.Render
 
 -- Testing:
-import Test.LoadSave
-import Test.PowerFlow
+-- import Test.LoadSave
+-- import Test.Root
+-- import Test.PowerFlow
 
 
 
 -- | The main program, only tests currently.
 main :: IO ()
-main = do
-  testLoadSave
-  testPowerFlow "case5.m"
-
+main =
   -- Fetch command-line arguments, parse the config from file (if any),
   -- and process the config (performing analyses, etc.).
   process =<< getConfig =<< getArgs
@@ -86,7 +84,6 @@ analyseSimple g@SGrid
   } PowerFlowGS = do
   putStrLn "Performing Gauss-Seidel power flow:"
   let stats = pfStatsSolve GaussSeidel g bs gs bs ls bs
-  (putStrLn . unpack . renderStats) g
   (putStrLn . unpack . renderPF base) stats
 analyseSimple g@SGrid
   { gridMVAbase=base
@@ -96,4 +93,22 @@ analyseSimple g@SGrid
   } PowerFlowJC = do
   putStrLn "Performing Jacobi power flow:"
   let stats = pfStatsSolve Jacobi g bs gs bs ls bs
+  (putStrLn . unpack . renderPF base) stats
+analyseSimple g@SGrid
+  { gridMVAbase=base
+  , gridBuses=bs
+  , gridGens=gs
+  , gridLines=ls
+  } PowerFlowNR = do
+  putStrLn "Performing Newton power flow (using approx. jacobian):"
+  let stats = pfStatsSolve NewtonRaphson g bs gs bs ls bs
+  (putStrLn . unpack . renderPF base) stats
+analyseSimple g@SGrid
+  { gridMVAbase=base
+  , gridBuses=bs
+  , gridGens=gs
+  , gridLines=ls
+  } PowerFlowNJ = do
+  putStrLn "Performing Newton power flow (using analytic jacobian):"
+  let stats = pfStatsSolve NewtonRaphsonJ g bs gs bs ls bs
   (putStrLn . unpack . renderPF base) stats

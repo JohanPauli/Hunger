@@ -16,8 +16,9 @@ module IO.Parse.Util
 
 -- * Also exports parsing library
 , module Data.Attoparsec.ByteString.Char8
+, module B8
 , module Control.Applicative
-)where
+) where
 
 
 -- Parsing:
@@ -25,7 +26,7 @@ import Data.Attoparsec.ByteString.Char8
 import qualified Data.Attoparsec.ByteString.Char8 as P8
 
 -- Bytestrings:
-import Data.ByteString.Char8
+import Data.ByteString.Char8 as B8 (pack,unpack)
 
 -- Control:
 import Control.Applicative

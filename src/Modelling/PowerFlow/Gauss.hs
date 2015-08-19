@@ -10,9 +10,6 @@ where
 
 
 
--- Foldables:
-import qualified Data.Foldable as F
-
 -- Electrical types, vectors, and matrices:
 import Util.Types
 import Util.Vector (Vector, dot)
@@ -48,7 +45,7 @@ solvePF n m s0 v0 adm =
     -- Update the PQ buses using Gauss-Seidel.
     updatePQ :: (Vector CPower, Vector CVoltage)
              -> (Vector CPower, Vector CVoltage)
-    updatePQ (s,v) = (s, foldl stepV v [0..n-1])
+    updatePQ (s,v) = (s, V.foldl' stepV v (V.enumFromN 0 n))
       where
         stepV u i = V.update i newU u
           where
@@ -61,11 +58,10 @@ solvePF n m s0 v0 adm =
     -- Update the PV buses using Gauss-Seidel.
     updatePV :: (Vector CPower, Vector CVoltage)
              -> (Vector CPower, Vector CVoltage)
-    updatePV (s,v) = F.foldl' stepQV (s,v) [n..n+m-1]
+    updatePV (s,v) = V.foldl' stepQV (s,v) (V.enumFromN n m)
       where
         stepQV (q,u) i = (q',u')
           where
-            --magn = V.map (\x -> magnitude x:+0)
             vmi = magnitude (v0!i):+0
             ui = u!i
             qi = q!i

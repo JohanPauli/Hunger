@@ -7,7 +7,7 @@
 -}
 module Util.Vector
 (
--- * Update functions
+-- * Update Functions
   update
 , dot
 
@@ -20,7 +20,7 @@ where
 
 -- Vectors:
 import Data.Vector.Storable as V hiding
-  (minIndex, maxIndex, find, accum, toList, (!))
+  (minIndex, maxIndex, find, accum, toList)
 import Data.Vector.Storable.Mutable (write)
 
 

@@ -5,19 +5,15 @@ module Modelling.PowerFlow.Jacobi
 (
 -- * Jacobi power flow solver.
   solvePF
-)
-where
+) where
 
 
-
--- Foldables:
-import qualified Data.Foldable as F
 
 -- Electrical types and vectors/matrices:
 import Util.Types
 import Util.Vector (Vector)
-import Util.Matrix (Matrix, (!), (#>), conj)
 import qualified Util.Vector as V
+import Util.Matrix (Matrix, (!), (#>), conj)
 import qualified Util.Matrix as M
 
 
@@ -37,11 +33,11 @@ solvePF n m s0 v0 adm =
                -> (Vector CPower, Vector CVoltage, Int)
     jacobiStep (s,v,it)
       | mis < 1e-7 = (v * conj (adm #> v),v,it)
-      | it > 1000 = error $ M.dispcf 2 $ M.asRow $ s - v * conj (adm #> v)
+      | it > 5000 = error $ M.dispcf 2 $ M.asRow $ s - v * conj (adm #> v)
       | otherwise = jacobiStep (s',v',it+1)
       where
         -- Updated values for s and v.
-        (s',v') = (updatePQPV . updatePV) (s,v)
+        (s',v') = (updatePVV . updatePQPV . updatePVQ) (s,v)
         -- The convergence criterion parameter, 'power mismatch.'
         mis = M.norm_Inf $ V.init $ s - v * conj (adm #> v)
 
@@ -56,11 +52,18 @@ solvePF n m s0 v0 adm =
       (s, V.update (n+m) (v0!(n+m-1)) (v + d * (conj (s/v) - adm #> v)))
 
     -- A new reactive power estimation uses PV bus data.
-    updatePV :: (Vector CPower, Vector CVoltage)
+    updatePVQ :: (Vector CPower, Vector CVoltage)
              -> (Vector CPower, Vector CVoltage)
-    updatePV (s,v) = (updatedQ,v)
+    updatePVQ (s,v) = (updatedQ,v)
       where
         qPV = V.map imagPart $ v * conj (adm #> v)
-        addQ q i = V.update i
-          (realPart (q!i) :+ qPV!i) q
-        updatedQ = F.foldl' addQ s [n..n+m-1]
+        addQ q i = V.update i (realPart (q!i) :+ qPV!i) q
+        updatedQ = V.foldl' addQ s (V.enumFromN n m)
+
+    updatePVV :: (Vector CPower, Vector CVoltage)
+             -> (Vector CPower, Vector CVoltage)
+    updatePVV (s,v) = (s,updatedV)
+      where
+        vm = V.map (\x -> magnitude x:+0) v0
+        addV u i = V.update i ((vm!i) * (u!i)/(magnitude (u!i):+0)) u
+        updatedV = V.foldl' addV v (V.enumFromN n m)

@@ -36,7 +36,7 @@ data GridFormat = Simple | MCF
   deriving (Show)
 
 -- | Types of available analyses.
-data Analysis = PowerFlowGS | PowerFlowJC
+data Analysis = PowerFlowGS | PowerFlowJC | PowerFlowNR | PowerFlowNJ
   deriving (Show)
 
 -- | Types of output to generate.
@@ -53,7 +53,7 @@ defaultConfig =
   Config
   { confGridFile = "case5.m"
   , confGridFormat = MCF
-  , confAnalyses = [PowerFlowGS, PowerFlowJC]
+  , confAnalyses = [PowerFlowGS, PowerFlowJC, PowerFlowNR, PowerFlowNJ]
   , confOutputs = [] }
 
 -- | An empty configutation, for filling. This may turn out to be a hack.
